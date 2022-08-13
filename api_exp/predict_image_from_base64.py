@@ -92,6 +92,7 @@ class PredictImageFromBase64(APIView):
             # 返却の直前で計測終了と経過時間を表示
             yolo_elapsed_time = time.time() - yolo_start
             print(f"yolo_model_elapsed_time: {yolo_elapsed_time}")
+            print(out_result["output_"])
             # =================================================================================
 
             # ===================================== CAOD =====================================
@@ -167,34 +168,38 @@ class PredictImageFromBase64(APIView):
                     object_images_list.append(i_bbox_image)
 
             # 学習済みモデルで検出された物体画像から、取り除き対象のみ結果として保持
-            yolo_to_remove_model = settings.YOLO_TO_REMOVE_MODEL
-            results_to_remove = yolo_to_remove_model(object_images_list, size=300)
+            if len(object_images_list)!=0:
+                yolo_to_remove_model = settings.YOLO_TO_REMOVE_MODEL
+                results_to_remove = yolo_to_remove_model(object_images_list, size=300)
 
-            objects_out_result = []
-            num_to_remove = len(object_images_list)
-            for k in range(num_to_remove):
-                result_to_remove = results_to_remove.pandas().xyxy[k]
-                result_to_remove = result_to_remove[
-                    (
-                        (result_to_remove["name"]=="bicycle")|
-                        (result_to_remove["name"]=="car")| 
-                        (result_to_remove["name"]=="person")|
-                        (result_to_remove["name"]=="bus")|
-                        (result_to_remove["name"]=="truck")
-                    )
-                ]
-                objects_out_result.append(result_to_remove.to_json(orient="records"))
+                objects_out_result = []
+                num_to_remove = len(object_images_list)
+                for k in range(num_to_remove):
+                    result_to_remove = results_to_remove.pandas().xyxy[k]
+                    result_to_remove = result_to_remove[
+                        (
+                            (result_to_remove["name"]=="bicycle")|
+                            (result_to_remove["name"]=="car")| 
+                            (result_to_remove["name"]=="person")|
+                            (result_to_remove["name"]=="bus")|
+                            (result_to_remove["name"]=="truck")
+                        )
+                    ]
+                    objects_out_result.append(result_to_remove.to_json(orient="records"))
 
-            # objectの名称が取り除き対象ではない時、returnするリストに追加
-            out_result_after_remove = [[] for i in range(len(out_result_caod["output_"]))]
-            object_number = -1
-            for i in range(len(out_result_caod["output_"])):
-                for i_bbox in eval(out_result_caod["output_"][i]):
-                    object_number +=1
-                    if len(objects_out_result[object_number])==2:
-                        out_result_after_remove[i].append(i_bbox)
+                # objectの名称が取り除き対象ではない時、returnするリストに追加
+                out_result_after_remove = [[] for i in range(len(out_result_caod["output_"]))]
+                object_number = -1
+                for i in range(len(out_result_caod["output_"])):
+                    for i_bbox in eval(out_result_caod["output_"][i]):
+                        object_number +=1
+                        if len(objects_out_result[object_number])==2:
+                            out_result_after_remove[i].append(i_bbox)
+            else:
+                out_result_after_remove = [[] for i in range(len(out_result_caod["output_"]))]
 
             # josn形式に変更
+            # out_result_after_remove = json.dumps(out_result_after_remove)
             for i in range(len(out_result_after_remove)):
                 out_result_after_remove[i] = str(out_result_after_remove[i])
                 out_result_after_remove
@@ -209,7 +214,7 @@ class PredictImageFromBase64(APIView):
             yolo_result_ast = out_result["output_"]
             caod_result_ast = out_result_after_remove
             for i in range(len(yolo_result_ast)):
-                return_result_outputs[i] =str(ast.literal_eval(yolo_result_ast[i]) + ast.literal_eval(caod_result_ast[i]))
+                return_result_outputs[i] = json.dumps(ast.literal_eval(yolo_result_ast[i]) + ast.literal_eval(caod_result_ast[i]))
 
             # 返却の直前で計測終了と経過時間を表示
             caod_all_elapsed_time = time.time() - caod_all_start
