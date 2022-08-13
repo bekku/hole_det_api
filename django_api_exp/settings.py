@@ -144,6 +144,11 @@ CAOD_MODEL.classes = None  # (optional list) filter by class, i.e. = [0, 15, 16]
 CAOD_MODEL.max_det = 1000  # maximum number of detections per image
 CAOD_MODEL.amp = False  # Automatic Mixed Precision (AMP) inference
 
+YOLO_TO_REMOVE_MODEL = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+YOLO_TO_REMOVE_MODEL.to(device)
+YOLO_TO_REMOVE_MODEL.conf = 0.4  # NMS confidence threshold
+YOLO_TO_REMOVE_MODEL.iou = 0.4  # NMS IoU threshold
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
